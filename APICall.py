@@ -1,4 +1,5 @@
 import os
+import csv
 import requests
 import base64
 import re
@@ -15,7 +16,7 @@ class APICall:
         self.client_id = os.getenv('CLIENT_ID')
         self.client_secret = os.getenv('CLIENT_SECRET')
         self.redirect_uri = os.getenv('REDIRECT_URI')
-        self.access_token = None
+        self.access_token = 'BQBwUyVUu923-b91bbVO2zgE_GtDYYdrlkx-zBXJLc_yOW0c-8hx9cUIjXQrxnbMxLkLD_cI1wG-rqavOYImYhjNnC17_5DTc_ANCgv4s3kudshb-FdkGppnVnrgrJlwsWINMkdQMzZTS_6pIdrW3c1RhGV2Wxp2rgNrpqE6U4eQv7TXkohfa7huzBjuMASCVT1BViz1Crf1eC4hOSJ973e43up04rDfGLXewk3R'
     
     def get_auth_url(self):
         """Genera la URL para que el usuario autorice la aplicación"""
@@ -78,13 +79,49 @@ class APICall:
             'Authorization': f'Bearer {self.access_token}'
         }
         r = requests.get(endpoint, headers=headers)
-        print(r.status_code)
+        return r.json()['id']
+    
+    def get_user_playlists(self, user_id):
+        endpoint = f"https://api.spotify.com/v1/users/{user_id}/playlists"
+        headers = {
+            'Authorization': f'Bearer {self.access_token}'
+        }
+        r = requests.get(endpoint, headers=headers)
+        return [playlist['id'] for playlist in r.json()['items']], [playlist['id'] for playlist in r.json()['items']]
+
+    def get_tracks_from_playlist (self, playlist_id:list):
+        endpoint = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
+        headers = {
+            'Authorization': f'Bearer {self.access_token}'
+        }
+        r = requests.get(endpoint, headers=headers)
+        tracks_name = [item['track']['name'] for item in r.json()['items']]
+        tracks_artist = [item['track']['artists'][0]['name'] for item in r.json()['items']]
+        
+        playlist = {}
+        for item in range(len(tracks_name)):
+            playlist[tracks_name[item]] = tracks_artist[item]
+        return playlist
 
     def run(self):
         # auth_url = self.get_auth_url()
         # auth_code = self.get_auth_code(auth_url)
-        self.get_access_token(auth_code='AQC1LxcLl2Phb69k-cajwJJYn2zWtLEPPaD4cEJq4Q9ZRunSF_LhkX9gY0tVPu9Vfna3llxLKwcMaRIQTdBeEWaEICnRCzWcjggT_gLrxTDVHtVw5pAKARU6ROpZz1ENmi5S6EjfBdDk8bbjj3-SL4oQtnlRINBqh9ELtTVeVr0FxRFXHfDpIOEXwZ4COS2Ez8HHSVMj_3v8VJWeXMrnZqTupFSbT5p5KtrvARq3q10WiJtscQ0')
-        self.get_user_id()  
+        # self.get_access_token(auth_code='AQA1viUTNqxodba8Y3N6aS0Oe3xj6OeuPyKiqKeCSIyDF3ZieCzEZMfydPdsnYAoy_XHRfgJncaUIR-NzLkTVSrwXjY-z2oZaqirWylYsHs-gXYg55MOaO5SV9SYwUc_suNqJ-RfeHtZSb95fCDHxGl_vX1cqY717ypfFTJVax9n6N-dX0-bBrZ26J2BxUm28UgzO0oUrv5-IM9c6eLs1hL7gn81JxgfXIWa5kzV34-OEN58rAg')
+        
+        user_id = self.get_user_id()
+        user_playlists_id, user_playlists_name = self.get_user_playlists(user_id=user_id)
+        counter = 0
+        for id in user_playlists_id:
+            playlist = self.get_tracks_from_playlist(playlist_id=id)
+            playlist_name = user_playlists_name[counter]
+            with open('archivo.csv', 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Clave', 'Valor'])  # Header
+                for key, value in playlist.items():
+                    writer.writerow([key, value])
+                
+
+        
         print('SIUUU') 
         
     
