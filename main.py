@@ -1,5 +1,5 @@
-from APICall import APICall
+from SpotiSpy import SpotiSpy
 
-app = APICall()
+app = SpotiSpy()
 
-print(app.show_secrets())
+app.run()

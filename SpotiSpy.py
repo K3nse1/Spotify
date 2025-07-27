@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 load_dotenv()
 
-class APICall:
+class SpotiSpy:
 
     '''Necesitamos el user_id para obtener nuestras playlists. Con los IDs de estas podemos sacar los ítems que contienen'''
 
@@ -16,7 +16,7 @@ class APICall:
         self.client_id = os.getenv('CLIENT_ID')
         self.client_secret = os.getenv('CLIENT_SECRET')
         self.redirect_uri = os.getenv('REDIRECT_URI')
-        self.access_token = 'BQBwUyVUu923-b91bbVO2zgE_GtDYYdrlkx-zBXJLc_yOW0c-8hx9cUIjXQrxnbMxLkLD_cI1wG-rqavOYImYhjNnC17_5DTc_ANCgv4s3kudshb-FdkGppnVnrgrJlwsWINMkdQMzZTS_6pIdrW3c1RhGV2Wxp2rgNrpqE6U4eQv7TXkohfa7huzBjuMASCVT1BViz1Crf1eC4hOSJ973e43up04rDfGLXewk3R'
+        self.access_token = 'BQBjzEppudoFJvhZmwuSUtS7XQwMs48lTP6VyVY6ayVGU0_vQjm9eww7Jnwk1H70bWLRtGQjax3gO0eRv-yqS5eE6feHb5ZvT-it7UOpNdyzycdMimLEXeIzVKhk9e0JoUoie762wFooHXq_hzonvcJvnlxAC0uC2YSTZkHgCTT3Yo0p9JT1_L_PXYWPna-Vp9Gollju1GMZAfE6lPmO54Opq8Re6K6S3rICppUr'
     
     def get_auth_url(self):
         """Genera la URL para que el usuario autorice la aplicación"""
@@ -87,7 +87,7 @@ class APICall:
             'Authorization': f'Bearer {self.access_token}'
         }
         r = requests.get(endpoint, headers=headers)
-        return [playlist['id'] for playlist in r.json()['items']], [playlist['id'] for playlist in r.json()['items']]
+        return [playlist['id'] for playlist in r.json()['items']], [playlist['name'] for playlist in r.json()['items']]
 
     def get_tracks_from_playlist (self, playlist_id:list):
         endpoint = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -95,38 +95,48 @@ class APICall:
             'Authorization': f'Bearer {self.access_token}'
         }
         r = requests.get(endpoint, headers=headers)
-        tracks_name = [item['track']['name'] for item in r.json()['items']]
-        tracks_artist = [item['track']['artists'][0]['name'] for item in r.json()['items']]
+        # tracks_name = [item['track']['name'] for item in r.json()['items']]
+        # tracks_artist = [item['track']['artists'][0]['name'] for item in r.json()['items']]
+        tracks_name = []
+        tracks_artist = []
+        for item in r.json()['items']:
+            try:
+                if item['track'] is not None:
+                    tracks_name.append(item['track']['name'])
+                    tracks_artist.append(item['track']['artists'][0]['name'])
+            except (KeyError, TypeError):
+                print(f"Canción problemática encontrada: {item}")
+                continue
         
         playlist = {}
         for item in range(len(tracks_name)):
             playlist[tracks_name[item]] = tracks_artist[item]
         return playlist
 
+    def write_csv(self, user_playlists_id, user_playlists_name):
+        with open('playlists.csv', 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Playlist', 'Clave', 'Valor'])  # Header del fichero
+        
+        for idx, id in enumerate(user_playlists_id):
+            playlist = self.get_tracks_from_playlist(playlist_id=id)
+            playlist_name = user_playlists_name[idx]
+            with open('playlists.csv', 'a', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                for key, value in playlist.items():
+                    writer.writerow([playlist_name, key, value])
+        
+
+
     def run(self):
         # auth_url = self.get_auth_url()
-        # auth_code = self.get_auth_code(auth_url)
-        # self.get_access_token(auth_code='AQA1viUTNqxodba8Y3N6aS0Oe3xj6OeuPyKiqKeCSIyDF3ZieCzEZMfydPdsnYAoy_XHRfgJncaUIR-NzLkTVSrwXjY-z2oZaqirWylYsHs-gXYg55MOaO5SV9SYwUc_suNqJ-RfeHtZSb95fCDHxGl_vX1cqY717ypfFTJVax9n6N-dX0-bBrZ26J2BxUm28UgzO0oUrv5-IM9c6eLs1hL7gn81JxgfXIWa5kzV34-OEN58rAg')
+        # # auth_code = self.get_auth_code(auth_url)
+        # self.get_access_token(auth_code='AQBXCSJcDNM1D4qOu9zeydg_jCUVbLMcz7um1kVaK_JKEfgNEuUOhnaeJwo0AubZ9KDS4ELXsRDs6Oip1UwazgIuJgU618jj-EEU1b3ngR_s2a7MHLFPpzNi8vf3an5NYHgyYScNHZTKnWarlYI9J02l8ulSVz_SOCsXtqXv5LxZM-VnzqeFqYVR0UH6RVMRLTNV2JIsDU-NsZTXVy-IT7mNOWgAQgsjAwXlCaxrXzgPhqIZhb8')
         
         user_id = self.get_user_id()
         user_playlists_id, user_playlists_name = self.get_user_playlists(user_id=user_id)
-        counter = 0
-        for id in user_playlists_id:
-            playlist = self.get_tracks_from_playlist(playlist_id=id)
-            playlist_name = user_playlists_name[counter]
-            with open('archivo.csv', 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(['Clave', 'Valor'])  # Header
-                for key, value in playlist.items():
-                    writer.writerow([key, value])
-                
-
-        
-        print('SIUUU') 
-        
+        self.write_csv(user_playlists_id, user_playlists_name)      
     
-
-app = APICall()
-
-print(app.run())
-print('SIUUUU')
+if __name__ == "__main__":
+    app = SpotiSpy()
+    app.run()
