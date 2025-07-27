@@ -16,7 +16,7 @@ class SpotiSpy:
         self.client_id = os.getenv('CLIENT_ID')
         self.client_secret = os.getenv('CLIENT_SECRET')
         self.redirect_uri = os.getenv('REDIRECT_URI')
-        self.access_token = 'BQBjzEppudoFJvhZmwuSUtS7XQwMs48lTP6VyVY6ayVGU0_vQjm9eww7Jnwk1H70bWLRtGQjax3gO0eRv-yqS5eE6feHb5ZvT-it7UOpNdyzycdMimLEXeIzVKhk9e0JoUoie762wFooHXq_hzonvcJvnlxAC0uC2YSTZkHgCTT3Yo0p9JT1_L_PXYWPna-Vp9Gollju1GMZAfE6lPmO54Opq8Re6K6S3rICppUr'
+        self.access_token = 'BQDKOecz6XdP-fYj_DhTWMsEpUAIt1Nx7HUPnauHQCdT6zUxal_ZCzSLMcWUh_v_FgI76nQn53jjANHPMrbX7cgdlJLU2XeK6k3edjfYy9NNmXObbVdI5mEF6ypKpUY6gdvMPTXM0BQyI4VzxBG80vQ-QCcENjXAP23H7TLlJS1wtb3X_cvdPcVPBgNUuFmkc_Et1ktNPFHB6H-KrcMLvSQcQ6VWmMqaSmBIUypk'
     
     def get_auth_url(self):
         """Genera la URL para que el usuario autorice la aplicación"""
@@ -46,7 +46,6 @@ class SpotiSpy:
         """Intercambia el código de autorización por un access token"""
         token_url = "https://accounts.spotify.com/api/token"
         
-        # Codificar client_id y client_secret en base64
         auth_string = f"{self.client_id}:{self.client_secret}"
         auth_bytes = auth_string.encode('ascii')
         auth_base64 = base64.b64encode(auth_bytes).decode('ascii')
@@ -82,12 +81,27 @@ class SpotiSpy:
         return r.json()['id']
     
     def get_user_playlists(self, user_id):
-        endpoint = f"https://api.spotify.com/v1/users/{user_id}/playlists"
-        headers = {
-            'Authorization': f'Bearer {self.access_token}'
-        }
-        r = requests.get(endpoint, headers=headers)
-        return [playlist['id'] for playlist in r.json()['items']], [playlist['name'] for playlist in r.json()['items']]
+        playlist_ids = []
+        playlist_names = []
+        limit=50
+        offset = 0
+        
+        while True:
+            endpoint = f"https://api.spotify.com/v1/users/{user_id}/playlists?limit={limit}&offset={offset}"
+            headers = {
+                'Authorization': f'Bearer {self.access_token}'
+            }
+            r = requests.get(endpoint, headers=headers)
+
+            playlist_ids += [playlist['id'] for playlist in r.json()['items']]
+            playlist_names += [playlist['name'] for playlist in r.json()['items']]
+            
+            if len(r.json()['items']) < 50:
+                break
+
+            offset += limit
+            
+        return playlist_ids, playlist_names
 
     def get_tracks_from_playlist (self, playlist_id:list):
         endpoint = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -95,8 +109,6 @@ class SpotiSpy:
             'Authorization': f'Bearer {self.access_token}'
         }
         r = requests.get(endpoint, headers=headers)
-        # tracks_name = [item['track']['name'] for item in r.json()['items']]
-        # tracks_artist = [item['track']['artists'][0]['name'] for item in r.json()['items']]
         tracks_name = []
         tracks_artist = []
         for item in r.json()['items']:
@@ -131,7 +143,7 @@ class SpotiSpy:
     def run(self):
         # auth_url = self.get_auth_url()
         # # auth_code = self.get_auth_code(auth_url)
-        # self.get_access_token(auth_code='AQBXCSJcDNM1D4qOu9zeydg_jCUVbLMcz7um1kVaK_JKEfgNEuUOhnaeJwo0AubZ9KDS4ELXsRDs6Oip1UwazgIuJgU618jj-EEU1b3ngR_s2a7MHLFPpzNi8vf3an5NYHgyYScNHZTKnWarlYI9J02l8ulSVz_SOCsXtqXv5LxZM-VnzqeFqYVR0UH6RVMRLTNV2JIsDU-NsZTXVy-IT7mNOWgAQgsjAwXlCaxrXzgPhqIZhb8')
+        # self.get_access_token(auth_code='AQBl00-QThnP6zGhTDF_g4E1Bjmw047Y89oHI2VqSbhjqWt05jV2s4TZenCzomnTzfh5nG_aTl1qDfEGHAnw6KENwT-HxOGiTIOlMt221-fnBhqZhOSrJbdAiEJJIxefFB5Z-ZGvfi1-03lYJOzdLHt3HdeuJqRbVBNvthJmuaQfDOuslgP-cF0Ghb5k2vPtxaAnPSNZHS6tKu5hsFAx6IJJC1Xr-VSamAtFSXdNOuNhtVL8AnY')
         
         user_id = self.get_user_id()
         user_playlists_id, user_playlists_name = self.get_user_playlists(user_id=user_id)
