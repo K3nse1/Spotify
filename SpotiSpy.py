@@ -16,7 +16,7 @@ class SpotiSpy:
         self.client_id = os.getenv('CLIENT_ID')
         self.client_secret = os.getenv('CLIENT_SECRET')
         self.redirect_uri = os.getenv('REDIRECT_URI')
-        self.access_token = 'BQDKOecz6XdP-fYj_DhTWMsEpUAIt1Nx7HUPnauHQCdT6zUxal_ZCzSLMcWUh_v_FgI76nQn53jjANHPMrbX7cgdlJLU2XeK6k3edjfYy9NNmXObbVdI5mEF6ypKpUY6gdvMPTXM0BQyI4VzxBG80vQ-QCcENjXAP23H7TLlJS1wtb3X_cvdPcVPBgNUuFmkc_Et1ktNPFHB6H-KrcMLvSQcQ6VWmMqaSmBIUypk'
+        self.access_token = None
     
     def get_auth_url(self):
         """Genera la URL para que el usuario autorice la aplicación"""
@@ -36,10 +36,13 @@ class SpotiSpy:
         '''El auth code que necesitamos está dentro de la auth_url. En este método extraemos sólo la parte que nos interesa
         mediante una expresión regular'''
 
+        code_url = input(f'''Introduce 
+{auth_url}
+en el navegador y pega la que devuelva, manín: ''' )
         pattern = r'code=([^&]+)'
 
-        auth_code = re.search(pattern=pattern, string=auth_url)
-        return auth_code
+        auth_code = re.search(pattern=pattern, string=code_url)
+        return auth_code.group(1)
 
 
     def get_access_token(self, auth_code):
@@ -100,7 +103,7 @@ class SpotiSpy:
                 break
 
             offset += limit
-            
+
         return playlist_ids, playlist_names
 
     def get_tracks_from_playlist (self, playlist_id:list):
@@ -139,15 +142,14 @@ class SpotiSpy:
                     writer.writerow([playlist_name, key, value])
         
 
-
     def run(self):
-        # auth_url = self.get_auth_url()
-        # # auth_code = self.get_auth_code(auth_url)
-        # self.get_access_token(auth_code='AQBl00-QThnP6zGhTDF_g4E1Bjmw047Y89oHI2VqSbhjqWt05jV2s4TZenCzomnTzfh5nG_aTl1qDfEGHAnw6KENwT-HxOGiTIOlMt221-fnBhqZhOSrJbdAiEJJIxefFB5Z-ZGvfi1-03lYJOzdLHt3HdeuJqRbVBNvthJmuaQfDOuslgP-cF0Ghb5k2vPtxaAnPSNZHS6tKu5hsFAx6IJJC1Xr-VSamAtFSXdNOuNhtVL8AnY')
-        
+        auth_url = self.get_auth_url()
+        auth_code = self.get_auth_code(auth_url)
+        self.get_access_token(auth_code=auth_code)
         user_id = self.get_user_id()
         user_playlists_id, user_playlists_name = self.get_user_playlists(user_id=user_id)
-        self.write_csv(user_playlists_id, user_playlists_name)      
+        self.write_csv(user_playlists_id, user_playlists_name)
+        print('¡Lista completada!')
     
 if __name__ == "__main__":
     app = SpotiSpy()
